@@ -23,3 +23,7 @@ https://docs.google.com/spreadsheets/d/16U5F34fF2fjRQec1DGghu101yzdsncCUPRWMnDHn
 3. (상주인구-상권)_2022.csv: 총_가구_수, 아파트_가구_수, 비_아파트_가구_수 컬럼 삭제
 4.  (직장인구-상권)_2022.csv: 모든 컬럼 사용
 5.  (집객시설-상권)_2022.csv: 모든 컬럼 사용
+
+------------------------------------------------------------------------
+https://golmok.seoul.go.kr/stateArea.do
+수기로 입력
