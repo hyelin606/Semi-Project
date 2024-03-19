@@ -11,7 +11,7 @@ import time
 import os
 
 # 폰트 경로 설정
-font_path = "C:\\multicampus\\Semi-Project\\Nanum_Gothic\\NanumGothic-Regular.ttf"
+font_path = "C:\\multicampus\\Semi-Project\\Nanum_Gothic\\NanumGothic-Bold.ttf"
 
 # 폰트 매니저에 폰트 추가
 fm.fontManager.addfont(font_path)
