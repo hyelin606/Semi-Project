@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_option_menu import option_menu
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,10 +12,11 @@ import time
 def main():
     st.set_page_config(page_title='강남구 편의점 매출 예측', page_icon="🏪", layout="wide")
 
-    st.sidebar.title('메뉴')
-
-    menu = st.sidebar.radio('메뉴를 선택하세요:', ['🏠 홈', '🗺️ 강남구 편의점 분포 현황', '📊 강남구 편의점 매출 현황', '💰 매출 현황 순위', '📈 매출 예측 모델링'])
-
+    with st.sidebar:
+        st.title('메뉴')
+        menu = option_menu("메뉴를 선택하세요:", ['홈', '강남구 편의점 분포 현황', '강남구 편의점 매출 현황', '매출 현황 순위', '매출 예측 모델링'],
+                   icons=['house', 'map', 'graph-up-arrow', 'cash-coin', 'cpu-fill'], menu_icon="cast", default_index=0)
+    
     # CSV 파일 불러오기
     file_path = 'data/final_reordered.csv'
     df = pd.read_csv(file_path)
@@ -22,12 +24,12 @@ def main():
     with st.spinner('로딩 중...'):
         time.sleep(2)  # Simulating loading time
 
-        if menu == '🏠 홈':
+        if menu == '홈':
             st.markdown("<h1 style='text-align: center;'>강남구 편의점 매출 예측 🏪</h1>", unsafe_allow_html=True)
             st.image('편의점 사진.jpg', use_column_width=True)
             st.image('홈 화면.png', use_column_width=True)
 
-        elif menu == '🗺️ 강남구 편의점 분포 현황': 
+        elif menu == '강남구 편의점 분포 현황': 
             st.markdown("<h1 style='text-align:center;'>강남구 편의점 분포 현황 🗺️</h1>", unsafe_allow_html=True)
             st.write('궁금한 상권을 선택하세요 👀')
 
@@ -54,7 +56,7 @@ def main():
             # Streamlit에 Folium 맵 표시
             folium_static(m)
 
-        elif menu == '📊 강남구 편의점 매출 현황':
+        elif menu == '강남구 편의점 매출 현황':
             st.markdown("<h1 style='text-align: center;'>강남구 편의점 매출 현황 📊</h1>", unsafe_allow_html=True)
 
             # 행정동 코드명 가져오기
@@ -78,6 +80,11 @@ def main():
                     plt.xlabel('시간대', fontsize=12, fontname='NanumGothic')
                     plt.ylabel('평균 매출금액', fontsize=12, fontname='NanumGothic')
                     plt.title(f"{selected_dong}의 시간대별 평균 매출", fontsize=14, fontname='NanumGothic')
+
+                    
+                    # y축의 단위 설정
+                    plt.gca().get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:.0f}억".format(x/1e8)))
+
                     st.pyplot(fig)
                 else:
                     st.write("선택된 행정동에 대한 데이터가 없습니다.")
@@ -102,11 +109,16 @@ def main():
                     plt.xlabel('시간대', fontsize=12, fontname='NanumGothic')
                     plt.ylabel('평균 매출금액', fontsize=12, fontname='NanumGothic')
                     plt.title(f"{selected_biz_area} 상권의 시간대별 평균 매출", fontsize=14, fontname='NanumGothic')
+                    
+                    
+                    # y축의 단위 설정
+                    plt.gca().get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:.0f}억".format(x/1e8)))
+
                     st.pyplot(fig)
                 else:
                     st.write("선택된 상권에 대한 데이터가 없습니다.")
 
-        elif menu == '💰 매출 현황 순위':
+        elif menu == '매출 현황 순위':
             st.markdown("<h1 style='text-align: center;'>매출 현황 순위 💰</h1>", unsafe_allow_html=True)
 
             # 각 시간대별 데이터 프레임 생성
@@ -121,16 +133,15 @@ def main():
 
             # 시간대 선택하는 버튼 생성
             selected_time_range = st.radio("시간대를 선택하세요:",
-                                           ['00:00 ~ 06:00', '06:00 ~ 11:00', '11:00 ~ 14:00', '14:00 ~ 17:00', '17:00 ~ 21:00', '21:00 ~ 24:00'])
+                                        ['00:00 ~ 06:00', '06:00 ~ 11:00', '11:00 ~ 14:00', '14:00 ~ 17:00', '17:00 ~ 21:00', '21:00 ~ 24:00'])
 
             # 선택된 시간대에 해당하는 데이터 필터링
             selected_data = hourly_data[selected_time_range]
 
             # 선택된 시간대에 대한 상권 TOP5 및 시각화 그래프 출력
-            st.write(f"{selected_time_range} 시간대 매출이 가장 높은 상권 TOP5:")
             if not selected_data.empty:
                 top5_by_hour = selected_data.groupby('상권_코드_명')['시간대_매출금액'].mean().nlargest(5)
-                st.write(top5_by_hour)
+                
 
                 # 그래프 생성
                 fig, ax = plt.subplots()
@@ -140,11 +151,19 @@ def main():
                 plt.title(f"{selected_time_range} 시간대 매출이 가장 높은 상권 TOP5", fontsize=14, fontname='NanumGothic')
                 plt.xticks(fontname='NanumGothic')
                 plt.yticks(fontname='NanumGothic')
+
+                for i, v in enumerate(top5_by_hour):
+                    ax.text(i, v, f'{v:.2f}', ha='center', va='bottom', fontsize=8)
+
+                # y축의 단위 설정
+                plt.gca().get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:.0f}억".format(x/1e8)))
+
+
                 st.pyplot(fig)
             else:
                 st.write("데이터가 없습니다.")
 
-        elif menu == '📈 매출 예측 모델링':
+        elif menu == '매출 예측 모델링':
             st.markdown("<h1 style='text-align: center;'>매출 예측 모델링 📈</h1>", unsafe_allow_html=True)
             st.write("매출 예측 모델링 내용을 여기에 추가하세요.")
 
