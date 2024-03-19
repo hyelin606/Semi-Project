@@ -11,7 +11,7 @@ import time
 import os
 
 # 글꼴 경로 설정
-font_path = "C:/Windows/Fonts/gulim.ttc"
+font_path = "C:\Windows\Fonts\malgun.ttf"
 
 # 폰트 로드
 font_prop = fm.FontProperties(fname=font_path)
