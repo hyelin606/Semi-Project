@@ -10,7 +10,7 @@ from folium.plugins import MarkerCluster
 import time
 import os
 
-fpath = os.path.join(os.getcwd(), "Nanum_Gothic\\NanumGothic-Regular.ttf")
+fpath = os.path.join(os.getcwd(), "Nanum_Gothic/NanumGothic-Regular.ttf")
 prop = fm.FontProperties(fname=fpath)
 
 def main():
