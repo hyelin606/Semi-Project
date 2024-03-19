@@ -10,8 +10,16 @@ from folium.plugins import MarkerCluster
 import time
 import os
 
-# 글꼴 경로 설정
-font_path = "C:\Windows\Fonts\malgun.ttf"
+# 폰트 경로 설정
+font_path = "C:\\multicampus\\Semi-Project\\Nanum_Gothic\\NanumGothic-Regular.ttf"
+
+# 폰트 매니저에 폰트 추가
+fm.fontManager.addfont(font_path)
+
+# 추가된 폰트 확인
+for font in fm.fontManager.ttflist:
+    if "NanumGothic" in font.name:
+        print(font.name, font.fname)
 
 # 폰트 로드
 font_prop = fm.FontProperties(fname=font_path)
