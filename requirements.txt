@@ -1,3 +1,6 @@
 matplotlib
 pandas
 streamlit
+geopandas
+numpy
+folium
