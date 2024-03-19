@@ -29,7 +29,7 @@ def main():
 
         elif menu == '🗺️ 강남구 편의점 분포 현황': 
             st.markdown("<h1 style='text-align:center;'>강남구 편의점 분포 현황 🗺️</h1>", unsafe_allow_html=True)
-            st.write('상권에 따른 편의점 점포 수 지도 시각화 보여주기')
+            st.write('궁금한 상권을 선택하세요 👀')
 
             # 기존 데이터 프레임과 상권 좌표 정보가 병합된 파일 경로
             merged_file_path = 'data/map_data.csv'
