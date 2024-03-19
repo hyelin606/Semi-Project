@@ -3,26 +3,15 @@ from streamlit_option_menu import option_menu
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+from matplotlib import font_manager as fm
 import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 import time
 import os
 
-# 폰트 경로 설정
-font_path = "C:\\multicampus\\Semi-Project\\Nanum_Gothic\\NanumGothic-Bold.ttf"
-
-# 폰트 매니저에 폰트 추가
-fm.fontManager.addfont(font_path)
-
-# 추가된 폰트 확인
-for font in fm.fontManager.ttflist:
-    if "NanumGothic" in font.name:
-        print(font.name, font.fname)
-
-# 폰트 로드
-font_prop = fm.FontProperties(fname=font_path)
+fpath = os.path.join(os.getcwd(), "Nanum_Gothic\\NanumGothic-Regular.ttf")
+prop = fm.FontProperties(fname=fpath)
 
 def main():
     st.set_page_config(page_title='강남구 편의점 매출 예측', page_icon="🏪", layout="wide")
@@ -90,11 +79,11 @@ def main():
                     selected_dong_data.groupby('시간대')['시간대_매출금액'].mean().plot(kind='bar', ax=ax, color='skyblue')
                     for i, v in enumerate(selected_dong_data.groupby('시간대')['시간대_매출금액'].mean()):
                         ax.text(i, v, f'{v:.2f}', ha='center', va='bottom', fontsize=8)
-                    plt.xticks(fontproperties=font_prop)  # 폰트 설정
-                    plt.yticks(fontproperties=font_prop)  # 폰트 설정
-                    plt.xlabel('시간대', fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                    plt.ylabel('평균 매출금액', fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                    plt.title(f"{selected_dong}의 시간대별 평균 매출", fontsize=14, fontproperties=font_prop)  # 폰트 설정
+                    plt.xticks(fontproperties=prop)  # 폰트 설정
+                    plt.yticks(fontproperties=prop)  # 폰트 설정
+                    plt.xlabel('시간대', fontsize=12, fontproperties=prop)  # 폰트 설정
+                    plt.ylabel('평균 매출금액', fontsize=12, fontproperties=prop)  # 폰트 설정
+                    plt.title(f"{selected_dong}의 시간대별 평균 매출", fontsize=14, fontproperties=prop)  # 폰트 설정
 
                     # y축의 단위 설정
                     plt.gca().get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:.0f}억".format(x/1e8)))
@@ -118,11 +107,11 @@ def main():
                     selected_biz_area_data.groupby('시간대')['시간대_매출금액'].mean().plot(kind='bar', ax=ax, color='skyblue')
                     for i, v in enumerate(selected_biz_area_data.groupby('시간대')['시간대_매출금액'].mean()):
                         ax.text(i, v, f'{v:.2f}', ha='center', va='bottom', fontsize=8)
-                    plt.xticks(fontproperties=font_prop)  # 폰트 설정
-                    plt.yticks(fontproperties=font_prop)  # 폰트 설정
-                    plt.xlabel('시간대', fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                    plt.ylabel('평균 매출금액', fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                    plt.title(f"{selected_biz_area} 상권의 시간대별 평균 매출", fontsize=14, fontproperties=font_prop)  # 폰트 설정
+                    plt.xticks(fontproperties=prop)  # 폰트 설정
+                    plt.yticks(fontproperties=prop)  # 폰트 설정
+                    plt.xlabel('시간대', fontsize=12, fontproperties=prop)  # 폰트 설정
+                    plt.ylabel('평균 매출금액', fontsize=12, fontproperties=prop)  # 폰트 설정
+                    plt.title(f"{selected_biz_area} 상권의 시간대별 평균 매출", fontsize=14, fontproperties=prop)  # 폰트 설정
 
                     # y축의 단위 설정
                     plt.gca().get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:.0f}억".format(x/1e8)))
@@ -159,11 +148,11 @@ def main():
                 # 그래프 생성
                 fig, ax = plt.subplots()
                 top5_by_hour.plot(kind='bar', ax=ax, color='skyblue')
-                plt.xlabel("상권", fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                plt.ylabel("평균 매출금액", fontsize=12, fontproperties=font_prop)  # 폰트 설정
-                plt.title(f"{selected_time_range} 시간대 매출이 가장 높은 상권 TOP5", fontsize=14, fontproperties=font_prop)  # 폰트 설정
-                plt.xticks(fontproperties=font_prop)  # 폰트 설정
-                plt.yticks(fontproperties=font_prop)  # 폰트 설정
+                plt.xlabel("상권", fontsize=12, fontproperties=prop)  # 폰트 설정
+                plt.ylabel("평균 매출금액", fontsize=12, fontproperties=prop)  # 폰트 설정
+                plt.title(f"{selected_time_range} 시간대 매출이 가장 높은 상권 TOP5", fontsize=14, fontproperties=prop)  # 폰트 설정
+                plt.xticks(fontproperties=prop)  # 폰트 설정
+                plt.yticks(fontproperties=prop)  # 폰트 설정
 
                 for i, v in enumerate(top5_by_hour):
                     ax.text(i, v, f'{v:.2f}', ha='center', va='bottom', fontsize=8)
