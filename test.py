@@ -10,7 +10,11 @@ from folium.plugins import MarkerCluster
 import time
 import os
 
-fpath = os.path.join(os.getcwd(), "Nanum_Gothic/NanumGothic-Regular.ttf")
+# 가져오기
+from expectation import expectation_content
+
+
+fpath = os.path.join(os.getcwd(), "font/NanumGothic-Regular.ttf")
 prop = fm.FontProperties(fname=fpath)
 
 def main():
@@ -22,11 +26,11 @@ def main():
                    icons=['house', 'map', 'graph-up-arrow', 'cash-coin', 'cpu-fill'], menu_icon="cast", default_index=0)
     
     # CSV 파일 불러오기
-    file_path = 'data/final_reordered.csv'
+    file_path = 'data2/final_reordered.csv'
     df = pd.read_csv(file_path)
 
     with st.spinner('로딩 중...'):
-        time.sleep(2)  # Simulating loading time
+        time.sleep(0.1)  # Simulating loading time
 
         if menu == '홈':
             st.markdown("<h1 style='text-align: center;'>강남구 편의점 매출 예측 🏪</h1>", unsafe_allow_html=True)
@@ -38,7 +42,7 @@ def main():
             st.write('궁금한 상권을 선택하세요 👀')
 
             # 기존 데이터 프레임과 상권 좌표 정보가 병합된 파일 경로
-            merged_file_path = 'data/map_data.csv'
+            merged_file_path = 'data2/map_data.csv'
 
             # 병합된 데이터 프레임 불러오기
             merged_df = pd.read_csv(merged_file_path)
@@ -165,8 +169,7 @@ def main():
                 st.write("데이터가 없습니다.")
 
         elif menu == '매출 예측 모델링':
-            st.markdown("<h1 style='text-align: center;'>매출 예측 모델링 📈</h1>", unsafe_allow_html=True)
-            st.write("매출 예측 모델링 내용을 여기에 추가하세요.")
+            expectation_content()
 
 if __name__ == "__main__":
     main()

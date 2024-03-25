@@ -6,3 +6,6 @@ streamlit-folium
 geopandas
 numpy
 folium
+scikit-learn
+lightgbm
+plotly
