@@ -807,7 +807,6 @@ def expectation_content():
             st.write(f'행정동 : {select_district}')
             st.write(f'상   권 : {select_sub_district}')
             st.write(f'{quarter_options[select_quarter]}분기 시간대별 예상매출 비교 표 : (단위:백만원)')
-            st.dataframe(sliced_EIBF_for_1_1.drop(columns=['상권_코드', '행정동_코드', 'center_point', 'latitude', 'longitude']))
             st.plotly_chart(viz_1_1(quarter_options[select_quarter], sliced_EIBF_for_1_1))
 
         # 시각화-1-2
