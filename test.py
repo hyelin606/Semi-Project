@@ -38,7 +38,7 @@ def main():
             st.image('홈 화면.png', use_column_width=True)
 
         elif menu == '강남구 편의점 분포 현황': 
-            st.markdown("<h1 style='text-align:center;'>강남구 편의점 분포 현황 🗺️</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align:center;'>강남구 편의점 분포 현황 🗺️ <span style='font-size:smaller;'>(2021년 1분기 ~ 2023년 3분기)</span></h1>", unsafe_allow_html=True)
             st.write('궁금한 상권을 선택하세요 👀')
 
             # 기존 데이터 프레임과 상권 좌표 정보가 병합된 파일 경로
@@ -58,7 +58,8 @@ def main():
 
             # 각 점에 대한 정보를 Folium으로 추가
             for idx, row in merged_df.iterrows():
-                popup_text = f"상권명: {row['상권_코드_명']}, 행정동: {row['행정동_코드_명']}, 시간대_매출금액_평균: {row['시간대_매출금액_평균']}"
+                avg_sales = row['시간대_매출금액_평균'] / 1_000_000  # 백만원 단위로 변환
+                popup_text = f"상권명: {row['상권_코드_명']}, 행정동: {row['행정동_코드_명']}, 시간대_매출금액_평균: {avg_sales:.2f} 백만원"
                 folium.Marker([row['latitude'], row['longitude']], popup=popup_text).add_to(marker_cluster)
 
             # Streamlit에 Folium 맵 표시
