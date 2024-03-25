@@ -520,7 +520,7 @@ def viz_5(sliced_EIBF_for_5):
 
 def expectation_content():
 
-    st.header("강남구 편의점 예상매출 종합")
+    st.markdown("<h1 style='text-align:center;'>강남구 편의점 예상매출 종합 🧠</h1>", unsafe_allow_html=True)
     st.write('-'*50)
 
     # 머신러닝을 돌리고, 그에 따른 모델과 테이블을 먼저 얻자.
