@@ -13,7 +13,6 @@ import os
 # 가져오기
 from expectation import expectation_content
 
-
 fpath = os.path.join(os.getcwd(), "font/NanumGothic-Regular.ttf")
 prop = fm.FontProperties(fname=fpath)
 
