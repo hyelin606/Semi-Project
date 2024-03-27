@@ -889,8 +889,8 @@ def expectation_content():
 
         with tab6:
             # 슬라이더
-            wish_income_max = st.slider('시간대 희망매출 최대값(단위:백만)', 0, 3000, 3000)
-            wish_income_min = st.slider('시간대 희망매출 최소값(단위:백만)', 0, 3000, 0)
+            wish_income_max = st.slider('월 희망매출 최대값(단위:백만)', 0, 3000, 3000)
+            wish_income_min = st.slider('월 희망매출 최소값(단위:백만)', 0, 3000, 0)
 
             # 슬라이싱에 필요함-1
             sliced_EIBF_for_3 = get_sliced_EIBF_for_3(expected_income_base_df, district_point_df)
