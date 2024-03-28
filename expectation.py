@@ -10,17 +10,19 @@ import re
 import pandas as pd
 import numpy as np
 
+# 모델 불러오기 라이브러리
+import joblib
+
 # GeoPandas 관련
-import geopandas as gpd
+# import geopandas as gpd
 
 # 데이터 분할용
 from sklearn.model_selection import train_test_split
 
 # 머신 평가용
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
+# from sklearn.metrics import mean_squared_error
+# from sklearn.metrics import mean_absolute_error
+# from sklearn.metrics import r2_score
 
 # 스케일링 관련
 from scipy.stats import boxcox
@@ -28,7 +30,7 @@ from scipy.special import inv_boxcox
 from sklearn.preprocessing import StandardScaler
 
 # 모델
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression
 from lightgbm import LGBMRegressor
 
 # 하이퍼파라미터 튜닝용
@@ -120,28 +122,12 @@ def box_cox(y_train, y_test):
     y_test_boxcox = boxcox(y_test + 1, lmbda=lambda_)
     return y_train_boxcox, y_test_boxcox, lambda_
 
-# 모델 생성 및 훈련
-@st.cache_data
-def train_model(X_train, y_train_boxcox):
-    # 모델 학습 - LightGBM
-    lgbm_regression = LGBMRegressor(random_state=11, verbose=-1)
 
-    # 탐색할 하이퍼파라미터 범위 설정
-    param_grid = {
-        'num_leaves': [15, 31, 50],
-        'learning_rate': [0.1, 0.15, 0.2],
-        'n_estimators': [200, 300, 400]
-    }
+# 모델 불러오기
+def load_model():
+    loaded_model = joblib.load('data2/best_lgbm_regression.pkl')
+    return loaded_model
 
-    # GridSearchCV 객체 생성
-    grid_search = GridSearchCV(estimator=lgbm_regression, param_grid=param_grid, cv=3)
-
-    # 모델 학습
-    grid_search.fit(X_train, y_train_boxcox)
-
-    # 최적의 estimator
-    best_lgbm_regression = grid_search.best_estimator_
-    return best_lgbm_regression
 
 # 모델 예측
 def eveluation(best_lgbm_regression, X_test, lambda_):
@@ -515,11 +501,42 @@ def viz_5(sliced_EIBF_for_5):
     m
 
 
+# ----------------------------- # --------------(실 수익 관련)--------------- # ----------------------------- #
+    
+# 임대료 정보 불러오기
+@st.cache_data
+def load_rent_df():
+    df = pd.read_csv('data2/merged_rent_sales_df.csv')
+    return df
+
+# 지출사항-1 : 임대료, 수수료, 마진율
+def get_expendi1(margin_rate, franchise_fee, area_size, rent_type, merged_rent_sales_df):
+    # 마진율 계산 : 마진 계산을 먼저 하고, 그 수익금 중에서 수수료(보통 30%)를 프랜차이즈가 떼어간다.
+    # margin_rate : (단위 : %)
+    merged_rent_sales_df['마진 수익'] = merged_rent_sales_df['예상_월매출']*(margin_rate/100)
+
+    # 프렌차이즈 수수료 계산
+    # franchise_fee : (단위 : %)
+    merged_rent_sales_df['프랜차이즈_수수료'] = merged_rent_sales_df['마진 수익']*(franchise_fee/100)
+
+    # 임대료 계산
+    # 넓이 정보
+    # area_size :(단위 : 제곱미터)
+
+    # 임대 유형 : '소규모 상가 임대료', '지하1층 임대료', '1층 임대료', '2층 임대료', ...
+    # rent_type = '소규모 상가', '지하1층', '1층', '2층', ...
+
+    merged_rent_sales_df['실 임대료'] = area_size * merged_rent_sales_df[rent_type + ' 임대료'] / (1e+3) # 백만단위로 변환
+
+    return merged_rent_sales_df
+
+
+
+
 # ----------------------------- # --------------(이하 main)--------------- # ----------------------------- #
     
 
 def expectation_content():
-
     st.markdown("<h1 style='text-align:center;'>강남구 편의점 예상매출 종합 🧠</h1>", unsafe_allow_html=True)
     st.write('-'*50)
 
@@ -544,8 +561,8 @@ def expectation_content():
     # box-cox 변환
     y_train_boxcox, y_test_boxcox, lambda_ = box_cox(y_train, y_test)
 
-    # 모델 생성 및 훈련
-    best_lgbm_regression = train_model(X_train, y_train_boxcox)
+    # 훈련된 모델 불러오기
+    best_lgbm_regression = load_model()
 
     # 모델 예측
     y_pred_lgbm_grid = eveluation(best_lgbm_regression, X_test, lambda_)
@@ -808,6 +825,8 @@ def expectation_content():
             st.write(f'상   권 : {select_sub_district}')
             st.write(f'{quarter_options[select_quarter]}분기 시간대별 예상매출 비교 표 : (단위:백만원)')
             st.plotly_chart(viz_1_1(quarter_options[select_quarter], sliced_EIBF_for_1_1))
+            with st.expander('표 확인하기'):
+                st.dataframe(sliced_EIBF_for_1_1.drop(columns=['상권_코드', '행정동_코드', 'center_point', 'latitude', 'longitude']))
 
         # 시각화-1-2
         with tab2:
@@ -903,4 +922,402 @@ def expectation_content():
             viz_5(sliced_EIBF_for_5)
 
         with tab7:
-            None
+            # 임대료 정보 불러오기
+            rent_df = load_rent_df()
+
+            # 실 임대료와 마진 계산
+            # 입력값 설정
+            col9, col10, = st.columns(2)
+            with col9:
+
+                # 행정동 셀렉트박스
+                select_district_a = st.selectbox(
+                "행정동 선택",
+                ('삼성1동', '삼성2동', '개포2동', '개포4동', '역삼1동', '역삼2동', '논현1동', '논현2동',
+                 '압구정동', '도곡1동', '도곡2동', '청담동', '신사동', '수서동', '대치1동', '대치2동', '대치4동',
+                 '세곡동', '일원1동'),
+                 key='select_district_a'
+                )
+
+                if select_district_a == '삼성1동':
+                    sub_options_a = ['강남 마이스 관광특구', '봉은사역', '코엑스', '봉은사역 4번']
+                elif select_district_a == '삼성2동':
+                    sub_options_a = ['선정릉역', '포스코사거리', '삼성중앙역']
+                elif select_district_a == '개포2동':
+                    sub_options_a = ['강남개포시장', '개포고등학교']
+                elif select_district_a == '개포4동':
+                    sub_options_a = ['국악고교사거리', '논현로18길', '포이초등학교(개포목련어린이공원)']
+                elif select_district_a == '역삼1동':
+                    sub_options_a = ['구역삼세무서', '역삼역', '뱅뱅사거리', '르네상스호텔사거리', '도곡1동', '경복아파트교차로', '역삼역 8번', '언주역 6번', '선정릉역 4번']
+                elif select_district_a == '역삼2동':
+                    sub_options_a = ['개나리아파트', '강남세브란스병원미래의학연구센터']
+                elif select_district_a == '논현1동':
+                    sub_options_a = ['학동역', '신논현역', '논현역', '논현초등학교', '논현목련공원']
+                elif select_district_a == '논현2동':
+                    sub_options_a = ['서울세관', '언주역(차병원)', '강남구청역', '언주역 3번', '언북중학교']
+                elif select_district_a == '압구정동':
+                    sub_options_a = ['성수대교남단', '도산공원교차로', '강남을지병원', '압구정로데오역(압구정로데오)']
+                elif select_district_a == '도곡1동':
+                    sub_options_a = ['매봉역 1번']
+                elif select_district_a == '도곡2동':
+                    sub_options_a = ['매봉역']
+                elif select_district_a == '청담동':
+                    sub_options_a = ['학동사거리', '경기고교사거리(경기고교앞사거리)', '영동대교남단교차로', '강남구청(청담역_8번, 강남세무서)',
+                                   '청담사거리(청담동명품거리)', '언북초등학교']
+                elif select_district_a == '신사동':
+                    sub_options_a = ['압구정역', '가로수길', '한남IC']
+                elif select_district_a == '수서동':
+                    sub_options_a = ['수서역']
+                elif select_district_a == '대치1동':
+                    sub_options_a = ['대치역']
+                elif select_district_a == '대치2동':
+                    sub_options_a = ['휘문고교사거리', '삼성역']
+                elif select_district_a == '대치4동':
+                    sub_options_a = ['은마아파트', '대치사거리', '한티역', '도성초등학교', '선릉역', '도곡초등학교', '대치동아우편취급국']
+                elif select_district_a == '세곡동':
+                    sub_options_a = ['윗방죽마을공원']
+                elif select_district_a == '일원1동':
+                    sub_options_a = ['대청초등학교']
+
+                margin_rate = st.number_input('마진율을 입력하세요(%)')
+                area_size = st.number_input('매장 넓이를 입력하세요(제곱미터)')
+
+
+            with col10:
+
+                # 상권 셀렉트박스
+                select_sub_district_a = st.selectbox("상권 선택", sub_options_a, key='elect_sub_district_a')
+
+                if select_district_a == '삼성1동':
+                    if select_sub_district_a == '강남 마이스 관광특구':
+                        district_code_a = 3001496
+                    elif select_sub_district_a == '봉은사역':
+                        district_code_a = 3120221
+                    elif select_sub_district_a == '코엑스':
+                        district_code_a = 3120218
+                    elif select_sub_district_a == '봉은사역 4번':
+                        district_code_a = 3110995
+
+                elif select_district_a == '삼성2동':
+                    if select_sub_district_a == '선정릉역':
+                        district_code_a = 3120207
+                    elif select_sub_district_a == '포스코사거리':
+                        district_code_a = 3120215
+                    elif select_sub_district_a == '삼성중앙역':
+                        district_code_a = 3120218
+
+                elif select_district_a == '개포2동':
+                    if select_sub_district_a == '강남개포시장':
+                        district_code_a = 3130310
+                    elif select_sub_district_a == '개포고등학교':
+                        district_code_a = 3110994
+
+                elif select_district_a == '개포4동':
+                    if select_sub_district_a == '국악고교사거리':
+                        district_code_a = 3110981
+                    elif select_sub_district_a == '논현로18길':
+                        district_code_a = 3110977
+                    elif select_sub_district_a == '포이초등학교(개포목련어린이공원)':
+                        district_code_a = 3110984
+                elif select_district_a == '역삼1동':
+                    if select_sub_district_a == '구역삼세무서':
+                        district_code_a = 3120198
+                    elif select_sub_district_a == '역삼역':
+                        district_code_a = 3120197
+                    elif select_sub_district_a == '뱅뱅사거리':
+                        district_code_a = 3120192
+                    elif select_sub_district_a == '르네상스호텔사거리':
+                        district_code_a = 3120204
+                    elif select_sub_district_a == '도곡1동':
+                        district_code_a = 3120201
+                    elif select_sub_district_a == '경복아파트교차로':
+                        district_code_a = 3120199
+                    elif select_sub_district_a == '역삼역 8번':
+                        district_code_a = 3110967
+                    elif select_sub_district_a == '언주역 6번':
+                        district_code_a = 3110965
+                    elif select_sub_district_a == '선정릉역 4번':
+                        district_code_a = 3110971
+        
+                elif select_district_a == '역삼2동':
+                    if select_sub_district_a == '개나리아파트':
+                        district_code_a = 3120206
+                    elif select_sub_district_a == '강남세브란스병원미래의학연구센터':
+                        district_code_a = 3110972
+
+                elif select_district_a == '논현1동':
+                    if select_sub_district_a == '학동역':
+                        district_code_a = 3120191
+                    elif select_sub_district_a == '신논현역':
+                        district_code_a = 3120187
+                    elif select_sub_district_a == '논현역':
+                        district_code_a = 3120185
+                    elif select_sub_district_a == '논현초등학교':
+                        district_code_a = 3110955
+                    elif select_sub_district_a == '논현목련공원':
+                        district_code_a = 3110952
+
+                elif select_district_a == '논현2동':
+                    if select_sub_district_a == '서울세관':
+                        district_code_a = 3120196
+                    elif select_sub_district_a == '언주역(차병원)':
+                        district_code_a = 3120194
+                    elif select_sub_district_a == '강남구청역':
+                        district_code_a = 3120203
+                    elif select_sub_district_a == '언주역 3번':
+                        district_code_a = 3110961
+                    elif select_sub_district_a == '언북중학교':
+                        district_code_a = 3110957
+
+                elif select_district_a == '압구정동':
+                    if select_sub_district_a == '성수대교남단':
+                        district_code_a = 3120195
+                    elif select_sub_district_a == '도산공원교차로':
+                        district_code_a = 3120193
+                    elif select_sub_district_a == '강남을지병원':
+                        district_code_a = 3120190
+                    elif select_sub_district_a == '압구정로데오역(압구정로데오)':
+                        district_code_a = 3120202
+
+                elif select_district_a == '도곡1동':
+                    if select_sub_district_a == '매봉역 1번':
+                        district_code_a = 3110975
+
+                elif select_district_a == '도곡2동':
+                    if select_sub_district_a == '매봉역':
+                        district_code_a = 3120205
+
+                elif select_district_a == '청담동':
+                    if select_sub_district_a == '학동사거리':
+                        district_code_a = 3120200
+                    elif select_sub_district_a == '경기고교사거리(경기고교앞사거리)':
+                        district_code_a = 3120216
+                    elif select_sub_district_a == '영동대교남단교차로':
+                        district_code_a = 3120214
+                    elif select_sub_district_a == '강남구청(청담역_8번, 강남세무서)':
+                        district_code_a = 3120209
+                    elif select_sub_district_a == '청담사거리(청담동명품거리)':
+                        district_code_a = 3120208
+                    elif select_sub_district_a == '언북초등학교':
+                        district_code_a = 3110976
+
+                elif select_district_a == '신사동':
+                    if select_sub_district_a == '압구정역':
+                        district_code_a = 3120188
+                    elif select_sub_district_a == '가로수길':
+                        district_code_a = 3120186
+                    elif select_sub_district_a == '한남IC':
+                        district_code_a = 3110949
+
+                elif select_district_a == '수서동':
+                    if select_sub_district_a == '수서역':
+                        district_code_a = 3120224
+
+                elif select_district_a == '대치1동':
+                    if select_sub_district_a == '대치역':
+                        district_code_a = 3120220
+
+                elif select_district_a == '대치2동':
+                    if select_sub_district_a == '휘문고교사거리':
+                        district_code_a = 3120223
+                    elif select_sub_district_a == '삼성역':
+                        district_code_a = 3120222
+
+                elif select_district_a == '대치4동':
+                    if select_sub_district_a == '은마아파트':
+                        district_code_a = 3120219
+                    elif select_sub_district_a == '대치사거리':
+                        district_code_a = 3120217
+                    elif select_sub_district_a == '한티역':
+                        district_code_a = 3120212
+                    elif select_sub_district_a == '도성초등학교':
+                        district_code_a = 3120211
+                    elif select_sub_district_a == '선릉역':
+                        district_code_a = 3120210
+                    elif select_sub_district_a == '도곡초등학교':
+                        district_code_a = 3110992
+                    elif select_sub_district_a == '대치동아우편취급국':
+                        district_code_a = 3110989
+
+                elif select_district_a == '세곡동':
+                    if select_sub_district_a == '윗방죽마을공원':
+                        district_code_a = 3110999
+
+                elif select_district_a == '일원1동':
+                    if select_sub_district_a == '대청초등학교':
+                        district_code_a = 3110997
+
+
+                franchise_fee = st.number_input('프랜차이즈 수수료율을 입력하세요(%)')
+                rent_type = st.selectbox('임대 유형', ('소규모 상가', '지하1층', '1층', '2층', '3층', '4층', '5층'))
+
+
+            merged_rent_sales_df = get_expendi1(margin_rate, franchise_fee, area_size, rent_type, rent_df)
+            # st.dataframe(merged_rent_sales_df)
+
+            st.write('-'*50)
+            st.write('인건비 관련사항 입력')
+
+            # 인건비 지출사항
+            col11, col12, col13 = st.columns(3)
+
+            with col11:
+                # 셀렉트 박스-1 : 날짜 유형 : '평일', '주말' : [일 수, 타입코드]
+                week_dict = {'평일': [5, 1], '주말': [2, 2]}
+                week_type = st.selectbox('근무 유형 선택', list(week_dict.keys()))
+            
+            with col12:
+                # 셀렉트 박스-2 : 시간대 : [시간, 타입코드]
+                time_dict = {'오픈(09~16)':[7, 1], '저녁(16~23)':[7, 2], '야간(23~09)':[10, 3]}
+                time_type = st.selectbox('근무 시간대 선택', list(time_dict.keys()))
+
+            with col13:
+                # 시간당 임금
+                pay_per_hour = st.number_input('시급을 입력하세요(원)')
+
+                # 월급 계산
+                pay_per_month = (week_dict[week_type][0] * 4 * time_dict[time_type][0] * pay_per_hour) / 1e+6
+
+
+            # 주말알바, 평일알바 수
+            init_n_week = 0
+            init_n_weekend = 0
+
+            # 시간대 알바 수
+            init_n_open = 0
+            init_n_day = 0
+            init_n_night = 0
+
+            # 세션 스테이트 지정
+            if 'n_week' not in st.session_state:
+                st.session_state.n_week = init_n_week
+            if 'n_weekend' not in st.session_state:
+                st.session_state.n_weekend = init_n_weekend
+            if 'n_open' not in st.session_state:
+                st.session_state.n_open = init_n_open
+            if 'n_day' not in st.session_state:
+                st.session_state.n_day = init_n_day
+            if 'n_night' not in st.session_state:
+                st.session_state.n_night = init_n_night
+
+
+            # 월급 사항을 리스트로 관리
+            init_pay_list = []
+            # 세션 스테이트 지정
+            if 'pay_list' not in st.session_state:
+                st.session_state.pay_list = init_pay_list
+
+            # 빈 데이터 프레임
+            init_arbeiter_df = pd.DataFrame(columns=['종업원', '근무 유형', '시간대', '월간 급여'])
+            # 세션 스테이트 지정
+            if 'arbeiter_df' not in st.session_state:
+                st.session_state.arbeiter_df = init_arbeiter_df
+
+            init_abc = 0
+            # 세션 스테이트 지정
+            if 'abc' not in st.session_state:
+                st.session_state.abc = init_abc
+
+            init_n_arbeiter_sum = 0
+            # 세션 스테이트 지정
+            if 'n_arbeiter_sum' not in st.session_state:
+                st.session_state.n_arbeiter_sum = init_n_arbeiter_sum
+
+
+            # '추가' 버튼
+            add_button = st.button('추가')
+            reset_button = st.button('초기화', type='primary')
+            
+            if add_button:
+                # 알바생 변화량
+                if week_dict[week_type][1] == 1:
+                    st.session_state.n_week += 1
+                if week_dict[week_type][1] == 2:
+                    st.session_state.n_weekend += 1
+                if time_dict[time_type][1] == 1:
+                    st.session_state.n_open += 1
+                if time_dict[time_type][1] == 2:
+                    st.session_state.n_day += 1
+                if time_dict[time_type][1] == 3:
+                    st.session_state.n_night += 1
+
+                # 전체 알바 수
+                st.session_state.n_arbeiter_sum = st.session_state.n_open + st.session_state.n_day + st.session_state.n_night
+
+                # 데이터 프레임 출력
+                new_row = pd.DataFrame({'종업원':[f'종업원{st.session_state.abc+1}'], '근무 유형':[[key for key, value in week_dict.items() if value == week_dict[week_type]][0]], '시간대':[[key for key, value in time_dict.items() if value == time_dict[time_type]][0]], '월간 급여':[pay_per_month]})
+                # new_DataFrame = pd.DataFrame([new_row])
+                st.session_state.arbeiter_df = pd.concat([st.session_state.arbeiter_df, new_row], ignore_index=True)
+
+                st.session_state.abc = st.session_state.abc+1
+
+                # 버튼을 누를 때 pay_list에 월급이 추가됨
+                st.session_state.pay_list.append(pay_per_month)
+
+
+            # 세션 스테이트 초기화
+            if reset_button:
+                st.session_state.clear()
+
+                # 세션 스테이트 지정
+                if 'arbeiter_df' not in st.session_state:
+                    st.session_state.arbeiter_df = init_arbeiter_df
+
+                # 세션 스테이트 지정
+                if 'pay_list' not in st.session_state:
+                    st.session_state.pay_list = init_pay_list
+
+                # 세션 스테이트 지정
+                if 'n_week' not in st.session_state:
+                    st.session_state.n_week = init_n_week
+                if 'n_weekend' not in st.session_state:
+                    st.session_state.n_weekend = init_n_weekend
+                if 'n_open' not in st.session_state:
+                    st.session_state.n_open = init_n_open
+                if 'n_day' not in st.session_state:
+                    st.session_state.n_day = init_n_day
+                if 'n_night' not in st.session_state:
+                    st.session_state.n_night = init_n_night
+
+                # 세션 스테이트 지정
+                if 'n_arbeiter_sum' not in st.session_state:
+                    st.session_state.n_arbeiter_sum = init_n_arbeiter_sum
+
+
+            st.write('-'*50)
+
+            expendi = merged_rent_sales_df.loc[merged_rent_sales_df['상권_코드']==district_code_a, ['프랜차이즈_수수료', '실 임대료']].sum().sum()
+            expendi_sum = expendi + sum(st.session_state.pay_list)
+            # expendi_sum
+
+            # 마진 수익금
+            margin_income = merged_rent_sales_df.loc[merged_rent_sales_df['상권_코드']==district_code_a, '마진 수익'].reset_index(drop=True)[0]
+            margin_income
+
+            # 실 수익 = 마진 수익금 - 지출금 : 인건비'추가' 버튼을 누른 다음 코드가 한 번 돌고, 다시 인건비 정보를 바꿨을 때, '추가' 버튼을 누르기 전에 여기에 값이 한 번 전달된다. 왜냐? 정보가 변경되었으니까.
+            # 다만 '추가'버튼을 누르기 전이라서 인건비 정보가 들어가지는 않았지만, 루프가 한 번 더 돌았기 때문에 이전의 인건비 값이 한 번 더 계산되는 것이다.
+
+
+            init_true_income = 0
+            # 세션 스테이트 설정
+            if 'true_income' not in st.session_state:
+                st.session_state.true_income = init_true_income
+
+
+            st.session_state.true_income = round(margin_income - expendi_sum, 3) # margin_income이 아직 정의되지 않았는데 불러와서 문제가 생김.
+            
+            st.header(f'월간 실 수익금(단위:백만원) : {st.session_state.true_income}')
+            st.write('')
+            st.write('종업원 정보 (월간 급여 단위 : 백만원)')
+            st.dataframe(st.session_state.arbeiter_df)
+            
+            st.write('종업원 근무 유형별 분류')
+            st.write(f'주간 종업원 수 : {st.session_state.n_week}')
+            st.write(f'주말 종업원 수 : {st.session_state.n_weekend}')
+            st.write('-'*10)
+            st.write('종업원 근무 시간대별 분류')
+            st.write(f'아침 시간대 종업원 수 : {st.session_state.n_open}')
+            st.write(f'저녁 시간대 종업원 수 : {st.session_state.n_day}')
+            st.write(f'야간 시간대 종업원 수 : {st.session_state.n_night}')
+            st.write('-'*10)
+            st.write(f'종업원 수 총 합 : {st.session_state.n_arbeiter_sum}')
